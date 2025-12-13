@@ -55,13 +55,13 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
+          username: ${{ secrets.DOCKER_USERNAME }} # Ini akan mengambil 'rinari1311'
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and Push Docker image
         run: |
-          # Build image menggunakan Dockerfile yang ada di root (.)
-          docker build -t stevenlie131105/mlflow-clustering:latest .
+          # GANTI stevenlie131105 MENJADI rinari1311 DI SINI:
+          docker build -t rinari1311/mlflow-clustering:latest .
           
-          # Push ke Docker Hub
-          docker push stevenlie131105/mlflow-clustering:latest
+          # DAN DI SINI:
+          docker push rinari1311/mlflow-clustering:latest
