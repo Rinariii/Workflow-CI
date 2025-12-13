@@ -1,9 +1,10 @@
 name: MLflow Project
-run: mlflow run MLProject -P data_path=MLProject/loan_clean.csv -P output_dir=MLProject/artifacts
+
 conda_env: conda.yaml
+
 entry_points:
   main:
     parameters:
-      data_path: {type: str, default: "../loan_clean.csv"}
+      data_path: {type: str, default: "loan_clean.csv"}
       output_dir: {type: str, default: "artifacts"}
     command: "python modelling.py --data_path {data_path} --output_dir {output_dir}"
