@@ -1,6 +1,6 @@
 name: MLflow Project
 
-conda_env: conda.yaml (Opsional)
+conda_env: conda.yml
 
 entry_points:
   main:
