@@ -22,8 +22,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # FIX: Tambahkan setuptools karena Python 3.12 tidak punya distutils
-          pip install setuptools wheel mlflow pandas numpy scikit-learn yellowbrick matplotlib joblib
+          # PERBAIKAN: Pin scikit-learn ke versi 1.5.2 agar kompatibel dengan Yellowbrick
+          pip install setuptools wheel mlflow pandas numpy "scikit-learn==1.5.2" yellowbrick matplotlib joblib
 
       - name: Run MLflow Project
         run: |
