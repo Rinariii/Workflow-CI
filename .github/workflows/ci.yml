@@ -3,7 +3,21 @@ name: MLflow Advanced CI/CD
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch:
+  workflow_dispatch: 
+
+permissions:
+  contents: write
+jobs:
+  build-and-train:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # ... langkah setup python & install dependencies ...
+      
+      # ... langkah training ...
+
+      # ... langkah Commit and Push Artifacts (Kode di atas) ...
 
 jobs:
   build-train-deploy:
@@ -56,13 +70,20 @@ jobs:
           ls -R mlruns || echo "mlruns folder not found yet"
           echo "Latest Run ID logic would go here in server-based mlflow."
           echo "Artifacts are ready in MLProject/artifacts."
-
-      # 7. Upload to GitHub
-      - name: Upload Artifacts to GitHub
-        uses: actions/upload-artifact@v4
-        with:
-          name: model-artifacts
-          path: MLProject/artifacts
+      # 7. Commit and Push Artifacts to GitHub Repository
+      - name: Commit and Push Artifacts
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          git add MLProject/artifacts/ 
+          
+          if [[ -n $(git status -s) ]]; then
+            git commit -m "Auto-update model artifacts by GitHub Actions [skip ci]"
+            git push
+          else
+            echo "No changes to commit"
+          fi
 
       # 8. Build Docker Model
       - name: Build Docker Model
