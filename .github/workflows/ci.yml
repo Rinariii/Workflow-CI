@@ -27,10 +27,16 @@ jobs:
 
       - name: Run MLflow Project
         run: |
+          # Definisikan Absolute Path untuk folder mlruns
+          export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"
+          
+          echo "Tracking URI set to: $MLFLOW_TRACKING_URI"
+          
           mlflow run MLProject \
             --env-manager=local \
             -P data_path=loan_clean.csv \
             -P output_dir=artifacts
+            
       - name: Upload artifacts to GitHub
         uses: actions/upload-artifact@v4
         with:
