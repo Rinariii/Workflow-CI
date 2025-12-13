@@ -25,13 +25,7 @@ def main():
     print(f"DEBUG: Output akan disimpan di: {args.output_dir}")
     os.makedirs(args.output_dir, exist_ok=True)
     
-    mlruns_dir = os.path.abspath("mlruns")
-    os.makedirs(mlruns_dir, exist_ok=True)
-    mlflow.set_tracking_uri(f"file:///{mlruns_dir}")
-    
     mlflow.sklearn.autolog(disable=True)
-    experiment_name = "Clustering_Experiment"
-    mlflow.set_experiment(experiment_name)
 
     if not os.path.exists(args.data_path):
         print(f"ERROR: File data tidak ditemukan di path: {args.data_path}")
