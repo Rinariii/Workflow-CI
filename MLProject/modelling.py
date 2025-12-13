@@ -14,27 +14,17 @@ from matplotlib import pyplot as plt
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Clustering Model Training")
-    parser.add_argument("--data_path", type=str, default="loan_clean.csv", help="Lokasi file data CSV")
-    parser.add_argument("--output_dir", type=str, default="artifacts", help="Folder untuk menyimpan output")
+    parser.add_argument("--data_path", type=str, default="loan_clean.csv")
+    parser.add_argument("--output_dir", type=str, default="artifacts")
     return parser.parse_args()
 
 def main():
     args = parse_args()
-    
-
-    current_dir = os.getcwd()
-    parent_dir = os.path.dirname(current_dir)
-    mlruns_path = os.path.join(parent_dir, "mlruns")
-    
-    # Set tracking URI secara eksplisit ke folder parent
-    mlflow.set_tracking_uri(f"file://{mlruns_path}")
-    
-    print(f"DEBUG: Tracking URI set to: {mlflow.get_tracking_uri()}")
-    print(f"DEBUG: Menggunakan data dari: {args.data_path}")
-    
-    # Setup Direktori Output
-    os.makedirs(args.output_dir, exist_ok=True)
+    print(f"DEBUG: Tracking URI saat ini: {mlflow.get_tracking_uri()}")
     mlflow.sklearn.autolog(disable=True)
+
+    # Setup output
+    os.makedirs(args.output_dir, exist_ok=True)
 
     # Load Data
     if not os.path.exists(args.data_path):
@@ -54,7 +44,7 @@ def main():
     pca = PCA(n_components=2)
     X_pca = pca.fit_transform(X_scaled)
 
-    # Elbow Plot
+    # Elbow
     print("Menghitung optimal K...")
     try:
         elbow_model = KMeans(random_state=42, n_init=10)
@@ -64,17 +54,17 @@ def main():
         optimal_k = elbow.elbow_value_
         print("Optimal k:", optimal_k)
     except Exception as e:
-        print(f"Warning: Gagal membuat Elbow Plot: {e}")
+        print(f"Warning: Gagal visualisasi: {e}")
         optimal_k = 3
 
     # MLflow Run
-    # Hapus parameter run_name di sini agar tidak konflik dengan run yang sudah dibuat CLI
+    # Menggunakan active run yang dibuat oleh 'mlflow run' CLI
     with mlflow.start_run() as run:
-        print(f"Active Run ID: {run.info.run_id}")
+        print(f"Sukses terhubung ke Run ID: {run.info.run_id}")
         
         model = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
         labels = model.fit_predict(X_pca)
-
+        
         silhouette = silhouette_score(X_pca, labels)
         mlflow.log_metric("silhouette_score", silhouette)
         mlflow.log_param("optimal_k", optimal_k)
@@ -94,16 +84,12 @@ def main():
             if 'elbow' in locals():
                 elbow.fig.savefig(paths["elbow_plot"])
                 plt.close(elbow.fig)
-        except Exception as e:
-            print(f"Warning: Gagal menyimpan plot: {e}")
+        except:
+            pass
 
         for name, path in paths.items():
             if os.path.exists(path):
                 mlflow.log_artifact(path)
-            else:
-                print(f"Warning: File {name} tidak ditemukan.")
-
-        print("Silhouette Score:", silhouette)
 
     print("Selesai.")
 
