@@ -12,21 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      # ... langkah setup python & install dependencies ...
-      
-      # ... langkah training ...
-
-      # ... langkah Commit and Push Artifacts (Kode di atas) ...
-
-jobs:
-  build-train-deploy:
-    runs-on: ubuntu-latest
-    
-    steps:
       # 1. Set up job & Checkout
-      - name: Run actions/checkout@v3
-        uses: actions/checkout@v3
+      - name: Run actions/checkout@v4
+        uses: actions/checkout@v4
 
       # 2. Set up Python
       - name: Set up Python 3.12.7
