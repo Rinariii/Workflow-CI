@@ -10,21 +10,19 @@ from sklearn.decomposition import PCA
 from yellowbrick.cluster import KElbowVisualizer
 from matplotlib import pyplot as plt
 
-PROJECT_DIR = r"C:\Users\steve\Downloads\Eksperimen_SML_Steven Lie Wibowo\Membangun_Model"
+PROJECT_DIR = "MLProject"
 ARTIFACTS_DIR = os.path.join(PROJECT_DIR, "artifacts")
 MLRUNS_DIR = os.path.join(PROJECT_DIR, "mlruns")
 os.makedirs(ARTIFACTS_DIR, exist_ok=True)
 os.makedirs(MLRUNS_DIR, exist_ok=True)
 
-mlflow.set_tracking_uri(f"file:///{MLRUNS_DIR}")
+mlflow.set_tracking_uri(f"file:///{os.path.abspath(MLRUNS_DIR)}")
 mlflow.sklearn.autolog(disable=True)
 
 experiment_name = "Clustering_Experiment"
 mlflow.set_experiment(experiment_name)
 
-df = pd.read_csv(
-    r"C:\Users\steve\Downloads\Eksperimen_SML_Steven Lie Wibowo\preprocessing\loan_clean.csv"
-)
+df = pd.read_csv("MLProjects/loan_clean.csv")
 X = df.drop(columns=['Age_Binned', 'Amount_Binned'])
 
 scaler = StandardScaler()
