@@ -25,10 +25,10 @@ jobs:
           pip install mlflow pandas numpy scikit-learn yellowbrick matplotlib joblib
 
       - name: Run MLflow Project
-        run: |
-          mlflow run MLProject/MLproject \
-            -P data_path=MLProject/namadataset_preprocessing/loan_clean.csv \
-            -P output_dir=MLProject/artifacts
+        run: |
+          mlflow run MLProject \
+            -P data_path=MLProject/loan_clean.csv \
+            -P output_dir=MLProject/artifacts
 
       - name: Upload artifacts to GitHub
         uses: actions/upload-artifact@v4
