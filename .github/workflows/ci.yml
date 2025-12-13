@@ -36,15 +36,18 @@ jobs:
 
       # 5. Run mlflow project
       - name: Run mlflow project
+        env:
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+          DAGSHUB_USER_TOKEN: ${{ secrets.DAGSHUB_USER_TOKEN }}
         run: |
-          # Kita set tracking URI ke local folder agar mudah diambil
-          export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"
+          # Perintah menunjuk ke FOLDER 'MLProject'
+          # Path parameter tetap 'loan_clean.csv' karena konteks run ada di dalam folder tersebut
           
-          # Jalankan Project
-          mlflow run . \
+          mlflow run MLProject \
             --env-manager=local \
-            -P data_path=MLProject/loan_clean.csv \
-            -P output_dir=MLProject/artifacts
+            -P data_path=loan_clean.csv \
+            -P output_dir=artifacts
 
       # 6. Get latest MLflow run_id 
       - name: Get latest MLflow run_id
