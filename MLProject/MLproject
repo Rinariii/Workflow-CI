@@ -1,4 +1,5 @@
-name: Clustering-Project
+name: MLflow Project
+run: mlflow run MLProject -P data_path=MLProject/namadataset_preprocessing/loan_clean.csv -P output_dir=MLProject/artifacts
 conda_env: conda.yaml
 entry_points:
   main:
