@@ -20,21 +20,30 @@ def parse_args():
 
 def main():
     args = parse_args()
-
-    print(f"DEBUG: Menggunakan data dari: {args.data_path}")
-    print(f"DEBUG: Output akan disimpan di: {args.output_dir}")
-    os.makedirs(args.output_dir, exist_ok=True)
     
+
+    current_dir = os.getcwd()
+    parent_dir = os.path.dirname(current_dir)
+    mlruns_path = os.path.join(parent_dir, "mlruns")
+    
+    # Set tracking URI secara eksplisit ke folder parent
+    mlflow.set_tracking_uri(f"file://{mlruns_path}")
+    
+    print(f"DEBUG: Tracking URI set to: {mlflow.get_tracking_uri()}")
+    print(f"DEBUG: Menggunakan data dari: {args.data_path}")
+    
+    # Setup Direktori Output
+    os.makedirs(args.output_dir, exist_ok=True)
     mlflow.sklearn.autolog(disable=True)
 
+    # Load Data
     if not os.path.exists(args.data_path):
         print(f"ERROR: File data tidak ditemukan di path: {args.data_path}")
-        # Coba cek direktori saat ini untuk debugging
-        print(f"Isi direktori saat ini ({os.getcwd()}): {os.listdir('.')}")
         sys.exit(1)
 
     df = pd.read_csv(args.data_path)
     
+    # Preprocessing
     cols_to_drop = ['Age_Binned', 'Amount_Binned']
     existing_drop_cols = [c for c in cols_to_drop if c in df.columns]
     X = df.drop(columns=existing_drop_cols)
@@ -45,16 +54,24 @@ def main():
     pca = PCA(n_components=2)
     X_pca = pca.fit_transform(X_scaled)
 
+    # Elbow Plot
     print("Menghitung optimal K...")
-    elbow_model = KMeans(random_state=42, n_init=10)
-    elbow = KElbowVisualizer(elbow_model, k=(2, 10))
-    elbow.fit(X_pca)
-    elbow.finalize()
-    optimal_k = elbow.elbow_value_
-    print("Optimal k:", optimal_k)
+    try:
+        elbow_model = KMeans(random_state=42, n_init=10)
+        elbow = KElbowVisualizer(elbow_model, k=(2, 10))
+        elbow.fit(X_pca)
+        elbow.finalize()
+        optimal_k = elbow.elbow_value_
+        print("Optimal k:", optimal_k)
+    except Exception as e:
+        print(f"Warning: Gagal membuat Elbow Plot: {e}")
+        optimal_k = 3
 
-    with mlflow.start_run(run_name="kmeans-manual-logging"):
-        # Training dengan optimal K
+    # MLflow Run
+    # Hapus parameter run_name di sini agar tidak konflik dengan run yang sudah dibuat CLI
+    with mlflow.start_run() as run:
+        print(f"Active Run ID: {run.info.run_id}")
+        
         model = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
         labels = model.fit_predict(X_pca)
 
@@ -62,7 +79,6 @@ def main():
         mlflow.log_metric("silhouette_score", silhouette)
         mlflow.log_param("optimal_k", optimal_k)
 
-        # Definisi path penyimpanan artefak (menggunakan args.output_dir)
         paths = {
             "model": os.path.join(args.output_dir, "model_clustering.pkl"),
             "scaler": os.path.join(args.output_dir, "scaler.pkl"),
@@ -70,30 +86,26 @@ def main():
             "elbow_plot": os.path.join(args.output_dir, "elbow_plot.png")
         }
 
-        # Simpan file lokal
         joblib.dump(model, paths["model"])
         joblib.dump(scaler, paths["scaler"])
         joblib.dump(pca, paths["pca"])
         
-        # Simpan plot
         try:
-            elbow.fig.savefig(paths["elbow_plot"])
-            plt.close(elbow.fig)
+            if 'elbow' in locals():
+                elbow.fig.savefig(paths["elbow_plot"])
+                plt.close(elbow.fig)
         except Exception as e:
             print(f"Warning: Gagal menyimpan plot: {e}")
 
-        # Log ke MLflow
         for name, path in paths.items():
-            try:
+            if os.path.exists(path):
                 mlflow.log_artifact(path)
-                print(f"Berhasil log artifact: {name}")
-            except Exception as e:
-                print(f"Gagal log artefak {name}: {e}")
+            else:
+                print(f"Warning: File {name} tidak ditemukan.")
 
-        print("Model saved at:", paths["model"])
         print("Silhouette Score:", silhouette)
 
-    print("Selesai. Artefak tersimpan di:", args.output_dir)
+    print("Selesai.")
 
 if __name__ == "__main__":
     main()
