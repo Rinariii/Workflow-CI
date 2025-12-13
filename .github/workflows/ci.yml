@@ -29,9 +29,8 @@ jobs:
         run: |
           mlflow run MLProject \
             --env-manager=local \
-            -P data_path=MLProject/loan_clean.csv \
-            -P output_dir=MLProject/artifacts
-
+            -P data_path=loan_clean.csv \
+            -P output_dir=artifacts
       - name: Upload artifacts to GitHub
         uses: actions/upload-artifact@v4
         with:
