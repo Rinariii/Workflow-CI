@@ -37,6 +37,13 @@ jobs:
       # 5. Run mlflow project
       - name: Run mlflow project
         run: |
+          # LANGKAH KUNCI: Gunakan $(pwd) untuk mendapatkan Absolute Path
+          # Ini memaksa MLflow CLI dan Python Script melihat ke folder yang SAMA
+          export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"
+          
+          echo "Tracking URI diset ke: $MLFLOW_TRACKING_URI"
+          
+          # Jalankan Project
           mlflow run MLProject \
             --env-manager=local \
             -P data_path=loan_clean.csv \
