@@ -1,95 +1,89 @@
 import os
+import argparse
 import mlflow
 import mlflow.sklearn
 import pandas as pd
 import joblib
+import sys
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(SCRIPT_DIR) # Asumsi tuning.py ada di root atau subfolder
-
-OUTPUT_DIR = "tuning_artifacts"
-MLRUNS_DIR = "mlruns"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(MLRUNS_DIR, exist_ok=True)
-
-DATA_PATH = os.path.join("preprocessing", "loan_clean.csv")
-
-def load_data():
-    if not os.path.exists(DATA_PATH):
-        if os.path.exists("loan_clean.csv"):
-            return pd.read_csv("loan_clean.csv")
-        
-        print(f"CWD: {os.getcwd()}")
-        raise FileNotFoundError(f"File data tidak ditemukan di: {DATA_PATH}")
-    
-    df = pd.read_csv(DATA_PATH)
-    print(f"Data Loaded: {df.shape}")
-    return df
+def parse_args():
+    parser = argparse.ArgumentParser(description="Clustering Tuning without Preprocessing")
+    parser.add_argument("--data_path", type=str, required=True, help="Path ke file CSV hasil preprocess")
+    parser.add_argument("--output_dir", type=str, default="artifacts", help="Folder untuk simpan model")
+    return parser.parse_args()
 
 def main():
-    mlflow.set_tracking_uri(f"file:///{os.path.abspath(MLRUNS_DIR)}")
-    mlflow.sklearn.autolog(disable=True) 
+    args = parse_args()
+    BASE_DIR = os.getcwd()
+    OUTPUT_DIR = os.path.join(BASE_DIR, args.output_dir)
+    MLRUNS_DIR = os.path.join(BASE_DIR, "mlruns")
 
-    experiment_name = "Clustering_Tuning_Automated"
-    mlflow.set_experiment(experiment_name)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(MLRUNS_DIR, exist_ok=True)
 
-    # Load Data
-    df = load_data()
 
-    # Config Tuning
+    mlflow.set_tracking_uri(f"file:///{MLRUNS_DIR}")
+    mlflow.sklearn.autolog(disable=True)
+    mlflow.set_experiment("Clustering_Tuning")
+
+    print(f"DEBUG: Membaca data dari {args.data_path}")
+
+    # 3. Load Data
+    if not os.path.exists(args.data_path):
+        print(f"ERROR: File {args.data_path} tidak ditemukan!")
+        sys.exit(1)
+
+    df = pd.read_csv(args.data_path)
+    
+    print(f"Data shape: {df.shape}")
+
     candidate_k = [2, 3, 4, 5, 6, 7, 8]
     best_score = -1
     best_model = None
     best_k = None
 
     print("Mulai Tuning...")
+    
 
-    for k in candidate_k:
-        with mlflow.start_run(run_name=f"k={k}"):
-            
-            # Train Model
-            model = KMeans(n_clusters=k, random_state=42, n_init=10)
-            labels = model.fit_predict(df)
+    with mlflow.start_run(run_name="Tuning_Session_GitHub"):
+        
+        for k in candidate_k:
+            with mlflow.start_run(run_name=f"k={k}", nested=True):
+                model = KMeans(n_clusters=k, random_state=42, n_init=10)
+                labels = model.fit_predict(df)
 
-            # Hitung Score
-            sil = silhouette_score(df, labels)
+                sil = silhouette_score(df, labels)
 
-            # Log ke MLflow
-            mlflow.log_param("n_clusters", k)
-            mlflow.log_metric("silhouette_score", sil)
+                # Log parameter & metric ke MLflow
+                mlflow.log_param("n_clusters", k)
+                mlflow.log_metric("silhouette_score", sil)
 
-            # Simpan Model per K
-            model_filename = f"model_k_{k}.pkl"
-            model_path = os.path.join(OUTPUT_DIR, model_filename)
-            joblib.dump(model, model_path)
-            
-            mlflow.log_artifact(model_path)
-            
-            print(f"K={k} -> Silhouette Score: {sil:.4f}")
+                model_filename = f"model_k_{k}.pkl"
+                model_path = os.path.join(OUTPUT_DIR, model_filename)
+                joblib.dump(model, model_path)
+                mlflow.log_artifact(model_path)
+                
+                print(f"K={k} -> Silhouette Score: {sil:.4f}")
 
-            # Update Best Model
-            if sil > best_score:
-                best_score = sil
-                best_model = model
-                best_k = k
+                # Cek Best Score
+                if sil > best_score:
+                    best_score = sil
+                    best_model = model
+                    best_k = k
 
-    print(f"\n--- Tuning Selesai ---")
-    print(f"Best K: {best_k} dengan Score: {best_score:.4f}")
+        print(f"Best K: {best_k} dengan Score: {best_score:.4f}")
 
-    # Simpan Best Model
-    best_model_path = os.path.join(OUTPUT_DIR, "best_model_clustering.pkl")
-    joblib.dump(best_model, best_model_path)
+        best_model_path = os.path.join(OUTPUT_DIR, "best_model_clustering.pkl")
+        joblib.dump(best_model, best_model_path)
 
-    # Log Summary Run
-    with mlflow.start_run(run_name="Best_Model_Summary"):
-        mlflow.log_param("best_k", best_k)
+        mlflow.log_param("best_k_found", best_k)
         mlflow.log_metric("best_silhouette_score", best_score)
         mlflow.log_artifact(best_model_path)
-
-    print(f"Semua artefak tersimpan di: {OUTPUT_DIR}")
+        
+        print(f"Model terbaik tersimpan di: {best_model_path}")
 
 if __name__ == "__main__":
     main()
