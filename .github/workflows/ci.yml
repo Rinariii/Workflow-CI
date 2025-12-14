@@ -7,16 +7,16 @@ on:
 
 permissions:
   contents: write
+
 jobs:
   build-and-train:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       # 1. Set up job & Checkout
       - name: Run actions/checkout@v4
         uses: actions/checkout@v4
 
-      # 2. Set up Python
+      # 2. Set up Python 3.12.7
       - name: Set up Python 3.12.7
         uses: actions/setup-python@v4
         with:
@@ -39,25 +39,24 @@ jobs:
       # 5. Run mlflow project
       - name: Run mlflow project
         run: |
-          # LANGKAH KUNCI: Gunakan $(pwd) untuk mendapatkan Absolute Path
-          # Ini memaksa MLflow CLI dan Python Script melihat ke folder yang SAMA
+          # Setup Tracking URI (Local)
           export MLFLOW_TRACKING_URI="file://$(pwd)/mlruns"
-          
           echo "Tracking URI diset ke: $MLFLOW_TRACKING_URI"
           
-          # Jalankan Project
+          # JALANKAN PROJECT
+          # output_dir diarahkan ke MLProject/artifacts agar sinkron dengan git add di poin 7
           mlflow run MLProject \
             --env-manager=local \
             -P data_path=loan_clean.csv \
-            -P output_dir=artifacts
+            -P output_dir=MLProject/artifacts
 
       # 6. Get latest MLflow run_id 
       - name: Get latest MLflow run_id
         run: |
           echo "Listing MLflow runs..."
           ls -R mlruns || echo "mlruns folder not found yet"
-          echo "Latest Run ID logic would go here in server-based mlflow."
           echo "Artifacts are ready in MLProject/artifacts."
+
       # 7. Commit and Push Artifacts to GitHub Repository
       - name: Commit and Push Artifacts
         run: |
@@ -66,11 +65,12 @@ jobs:
           
           git add MLProject/artifacts/ 
           
-          if [[ -n $(git status -s) ]]; then
+          if ! git diff --cached --quiet; then
+            echo "Perubahan terdeteksi. Melakukan Commit..."
             git commit -m "Auto-update model artifacts by GitHub Actions [skip ci]"
             git push
           else
-            echo "No changes to commit"
+            echo "Tidak ada perubahan pada artifacts. Skip commit."
           fi
 
       # 8. Build Docker Model
@@ -85,7 +85,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # 10. Tag Docker Image (Sesuai Gambar)
+      # 10. Tag Docker Image
       - name: Tag Docker Image
         run: |
           docker tag ${{ secrets.DOCKER_USERNAME }}/mlflow-clustering:latest ${{ secrets.DOCKER_USERNAME }}/mlflow-clustering:v1
