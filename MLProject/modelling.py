@@ -8,7 +8,7 @@ import sys
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
-# Setup Argparse
+# 1. Setup Argparse
 def parse_args():
     parser = argparse.ArgumentParser(description="Clustering Tuning without Preprocessing")
     parser.add_argument("--data_path", type=str, required=True, help="Path ke file CSV")
@@ -16,28 +16,24 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    args = parse_args()    
+    args = parse_args()
+
+    # 2. Setup Path Output
     BASE_DIR = os.getcwd()
     OUTPUT_DIR = os.path.join(BASE_DIR, args.output_dir)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-    # Disable autolog biar gak spamming log default, kita mau log manual
     mlflow.sklearn.autolog(disable=True)
-
-    # HAPUS baris ini (Penyebab Error):
-    # mlflow.set_tracking_uri(...) 
-    # mlflow.set_experiment(...)
 
     print(f"DEBUG: Membaca data dari {args.data_path}")
 
-    # Load Data
+    # 3. Load Data
     if not os.path.exists(args.data_path):
         print(f"ERROR: File {args.data_path} tidak ditemukan!")
         sys.exit(1)
 
     df = pd.read_csv(args.data_path)
     
-    # Tuning Loop
+    # 4. Tuning Loop
     candidate_k = [2, 3, 4, 5, 6, 7, 8]
     best_score = -1
     best_model = None
@@ -46,12 +42,12 @@ def main():
     print("Mulai Tuning...")
     
     active_run = mlflow.active_run()
-    
-    if active_run
+    if active_run:
         parent_run_context = None
     else:
-        print("Tidak ada active run, membuat run baru...")
         parent_run_context = mlflow.start_run(run_name="Tuning_Session_GitHub")
+
+    # Masuk ke context run (jika run baru dibuat)
     if parent_run_context:
         parent_run_context.__enter__()
 
@@ -92,6 +88,7 @@ def main():
         print(f"Model terbaik tersimpan di: {best_model_path}")
 
     finally:
+        # Tutup parent run jika tadi kita yang membukanya
         if parent_run_context:
             parent_run_context.__exit__(None, None, None)
 
